@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目时间进度计划表</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .header-info {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        .header-info input {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+        .time-setting {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: #e8f4f8;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .time-setting label {
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .time-setting input[type="date"] {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .time-setting input[type="number"] {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 60px;
+        }
+        .auto-calc-switch {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .tips {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #a9c4e6;
+            color: #333;
+        }
+        .task-name {
+            text-align: left;
+            min-width: 200px;
+        }
+        .gantt-row {
+            display: flex;
+            height: 30px;
+        }
+        .gantt-day {
+            width: 30px;
+            border-right: 1px solid #eee;
+            position: relative;
+            z-index: 1;
+        }
+        .gantt-done {
+            background-color: #a5d6a7;
+        }
+        .gantt-todo {
+            background-color: #ffcdd2;
+        }
+        .date-header {
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .editable-cell {
+            cursor: pointer;
+            min-height: 24px;
+            transition: background-color 0.2s;
+        }
+        .editable-cell:hover {
+            background-color: #e3f2fd;
+        }
+        .edit-input {
+            width: 100%;
+            padding: 4px;
+            border: 2px solid #2196f3;
+            border-radius: 4px;
+            outline: none;
+            font-size: 14px;
+            background: white;
+        }
+        input[type="date"].edit-input {
+            min-width: 130px;
+        }
+        .btn-group {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-add {
+            background-color: #67c23a;
+            color: white;
+        }
+        .btn-clear {
+            background-color: #f56c6c;
+            color: white;
+        }
+        .btn-save {
+            background-color: #409eff;
+            color: white;
+        }
+        .completed {
+            color: #67c23a;
+            font-weight: bold;
+        }
+        .overdue {
+            color: #f56c6c;
+            font-weight: bold;
+        }
+        .today-mark {
+            border: 2px solid #f56c6c !important;
+            z-index: 10 !important;
+        }
+        .delete-btn {
+            background-color: #f56c6c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: inline-block;
+            transition: background-color 0.2s;
+            margin-left: 5px;
+        }
+        .delete-btn:hover {
+            background-color: #e14545;
+        }
+        .index-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .date-picker-hint {
+            color: #666;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>项目时间进度计划表</h1>
+        
+        <!-- 头部信息 -->
+        <div class="header-info">
+            <div>项目名称：<input type="text" id="projectName" placeholder="输入项目名称" value="新产品研发"></div>
+            <div>计划工时：<input type="number" id="totalDays" value="45" min="1" max="999"> 天</div>
+            <div>项目经理：<input type="text" id="manager" value="王小沐"></div>
+        </div>
+
+        <!-- 时间设置区域 (查看范围) -->
+        <div class="time-setting">
+            <label>📅 查看范围：</label>
+            <label>从 <input type="date" id="startDate" value="2026-03-01" class="date-input"></label>
+            <label>到 <input type="date" id="endDate" value="2026-12-31" class="date-input"></label>
+            <label>单位 <input type="number" id="dateUnit" value="1" min="1" max="7"> 天</label>
+            <div class="auto-calc-switch">
+                <label><input type="checkbox" id="autoCalcSwitch" checked> 自动计算进度</label>
+            </div>
+        </div>
+
+        <!-- 提示信息 -->
+        <div class="tips">
+            <p>✅ 点击表格中的【事项名称、负责人、开始日期、结束日期】可直接编辑</p>
+            <p>✅ 修改开始/结束日期后，持续天数和甘特图自动联动更新</p>
+            <p>✅ 每行序号旁有红色删除按钮，可删除对应任务</p>
+            <p>✅ 今日日期在甘特图中有红色边框标记</p>
+        </div>
+
+        <!-- 操作按钮组 -->
+        <div class="btn-group">
+            <button class="btn btn-add" id="addTask">➕ 添加新事项</button>
+            <button class="btn btn-clear" id="clearData">🗑️ 清空所有数据</button>
+            <button class="btn btn-save" id="saveData">💾 手动保存数据</button>
+            <button class="btn btn-export" id="exportExcel" style="background-color:#e6a23c;">📊 导出Excel</button>
+            <button class="btn" id="exportData" style="background-color:#909399;">📤 导出JSON</button>
+            <button class="btn" id="importData" style="background-color:#667eea;">📥 导入JSON</button>
+            <input type="file" id="fileInput" accept=".json" style="display: none;">
+        </div>
+
+        <!-- 主表格 -->
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th rowspan="2">序号/删除</th>
+                    <th rowspan="2" class="task-name">项目事项</th>
+                    <th rowspan="2">负责人</th>
+                    <th rowspan="2">开始日期</th>
+                    <th rowspan="2">结束日期</th>
+                    <th rowspan="2">持续天数</th>
+                    <th rowspan="2">已完成天数</th>
+                    <th rowspan="2">完成率</th>
+                    <th colspan="1" class="date-header">
+                        <div id="dateHeader" class="gantt-row"></div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="taskBody">
+                <!-- 任务行由JS动态生成 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 存储键名
+        const STORAGE_KEY = 'project_gantt_data';
+
+        // 全局日期格式化函数（清除时分秒，避免对比错误）
+        function formatDate(date) {
+            if (!date) return new Date();
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        // 格式化日期为 YYYY-MM-DD
+        function toISODateString(date) {
+            const d = formatDate(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 计算开始到结束日期的总天数（含首尾）
+        function getTotalDaysInRange(startDate, endDate) {
+            const s = formatDate(startDate);
+            const e = formatDate(endDate);
+            return Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
+        }
+        
+        // 初始化数据
+        let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || Array.from({length: 5}, (_, i) => ({
+            id: i + 1,
+            name: `初始事项 ${i+1}`,
+            manager: "王小沐",
+            startDate: toISODateString(new Date(2026, 2, i * 5 + 1)), // 2026-03-01 开始
+            endDate: toISODateString(new Date(2026, 2, i * 5 + 15)),
+            doneDays: Math.floor(Math.random() * 8) + 1
+        }));
+
+        // 确保所有任务日期格式正确
+        tasks = tasks.map(task => ({
+            ...task,
+            startDate: toISODateString(task.startDate),
+            endDate: toISODateString(task.endDate)
+        }));
+
+        // 页面头部信息初始化
+        function initHeaderInfo() {
+            const savedProjectName = localStorage.getItem('project_name') || '新产品研发';
+            const savedManager = localStorage.getItem('project_manager') || '王小沐';
+            const savedTotalDays = localStorage.getItem('project_days') || 45;
+            
+            document.getElementById('projectName').value = savedProjectName;
+            document.getElementById('manager').value = savedManager;
+            document.getElementById('totalDays').value = savedTotalDays;
+            
+            document.getElementById('projectName').addEventListener('change', (e) => {
+                localStorage.setItem('project_name', e.target.value);
+            });
+            document.getElementById('manager').addEventListener('change', (e) => {
+                localStorage.setItem('project_manager', e.target.value);
+            });
+            document.getElementById('totalDays').addEventListener('change', (e) => {
+                localStorage.setItem('project_days', e.target.value);
+            });
+        }
+
+        // 生成日期表头
+        function renderDateHeader() {
+            const start = formatDate(document.getElementById('startDate').value);
+            const end = formatDate(document.getElementById('endDate').value);
+            const header = document.getElementById('dateHeader');
+            header.innerHTML = '';
+            
+            let current = new Date(start);
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const totalDays = getTotalDaysInRange(start, end);
+            
+            document.querySelector('.date-header').colSpan = totalDays;
+            
+            while (current <= end) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'gantt-day';
+                const today = formatDate(new Date());
+                if (formatDate(current).getTime() === today.getTime()) {
+                    dayDiv.classList.add('today-mark');
+                }
+                dayDiv.innerHTML = `
+                    <div>${current.getDate()}</div>
+                    <div style="font-size:10px">${weekDays[current.getDay()]}</div>
+                `;
+                header.appendChild(dayDiv);
+                current.setDate(current.getDate() + 1);
+            }
+        }
+
+        // 计算两个日期之间的天数差（包含起始和结束日）
+        function getDaysBetween(start, end) {
+            if (!start || !end) return 0;
+            const s = formatDate(start);
+            const e = formatDate(end);
+            return Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        // 根据当前日期自动计算任务的已完成天数和状态
+        function calculateAutoDoneDays(task) {
+            const today = formatDate(new Date());
+            const taskStart = formatDate(task.startDate);
+            const taskEnd = formatDate(task.endDate);
+
+            let autoDoneDays = 0;
+            let isCompleted = false;
+            let isOverdue = false;
+
+            if (today < taskStart) {
+                autoDoneDays = 0;
+            }
+            else if (today >= taskStart && today <= taskEnd) {
+                autoDoneDays = getDaysBetween(task.startDate, today);
+            }
+            else {
+                autoDoneDays = getDaysBetween(task.startDate, task.endDate);
+                isCompleted = true;
+            }
+
+            isOverdue = today > taskEnd && !isCompleted;
+
+            return { autoDoneDays, isCompleted, isOverdue };
+        }
+
+        // 获取任务的实际已完成天数（考虑自动计算开关）
+        function getActualDoneDays(task) {
+            const isAutoCalc = document.getElementById('autoCalcSwitch').checked;
+            if (isAutoCalc) {
+                return calculateAutoDoneDays(task).autoDoneDays;
+            }
+            return task.doneDays;
+        }
+
+        // 渲染甘特图条
+        function renderGanttBar(task, projectStart) {
+            const taskStart = formatDate(task.startDate);
+            const taskEnd = formatDate(task.endDate);
+            const doneEnd = formatDate(task.startDate);
+            const today = formatDate(new Date());
+            
+            const finalDoneDays = getActualDoneDays(task);
+            
+            if (finalDoneDays > 0) {
+                doneEnd.setDate(doneEnd.getDate() + finalDoneDays - 1);
+            }
+            
+            let html = '';
+            let current = new Date(projectStart);
+            const endDate = formatDate(document.getElementById('endDate').value);
+            
+            while (current <= endDate) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'gantt-day';
+                
+                if (formatDate(current).getTime() === today.getTime()) {
+                    dayDiv.classList.add('today-mark');
+                }
+                
+                const currentDate = formatDate(current);
+                if (currentDate >= taskStart && currentDate <= taskEnd) {
+                    if (currentDate <= doneEnd) {
+                        dayDiv.classList.add('gantt-done');
+                    } else {
+                        dayDiv.classList.add('gantt-todo');
+                    }
+                }
+                
+                html += dayDiv.outerHTML;
+                current.setDate(current.getDate() + 1);
+                current = formatDate(current);
+            }
+            return html;
+        }
+
+        // 创建可编辑单元格（优化日期编辑体验）
+        function createEditableCell(value, field, taskId) {
+            const cell = document.createElement('td');
+            cell.className = `editable-cell ${field === 'name' ? 'task-name' : ''}`;
+            cell.textContent = value;
+            cell.dataset.field = field;
+            cell.dataset.taskId = taskId;
+            
+            // 只有这些字段可编辑
+            const editableFields = ['name', 'manager', 'startDate', 'endDate', 'doneDays'];
+            if (!editableFields.includes(field)) {
+                return cell;
+            }
+
+            cell.onclick = function(e) {
+                e.stopPropagation();
+                
+                // 自动计算模式下禁止编辑doneDays
+                const isAutoCalc = document.getElementById('autoCalcSwitch').checked;
+                if (isAutoCalc && field === 'doneDays') {
+                    alert('当前开启自动计算进度，已完成天数由系统自动计算');
+                    return;
+                }
+
+                if (this.querySelector('input')) return;
+
+                const currentValue = this.textContent;
+                const fieldName = this.dataset.field;
+                const taskId = this.dataset.taskId;
+
+                let input;
+                if (fieldName === 'startDate' || fieldName === 'endDate') {
+                    input = document.createElement('input');
+                    input.type = 'date';
+                    input.value = currentValue;
+                    input.style.width = '140px'; // 给日期选择器足够宽度
+                } else if (fieldName === 'doneDays') {
+                    input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.value = currentValue;
+                    input.style.width = '70px';
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = currentValue;
+                }
+                
+                input.className = 'edit-input';
+                this.innerHTML = '';
+                this.appendChild(input);
+                input.focus();
+                input.select();
+
+                const saveEdit = () => {
+                    const newValue = input.value.trim();
+                    
+                    if ((fieldName === 'startDate' || fieldName === 'endDate') && !newValue) {
+                        this.textContent = currentValue;
+                        return;
+                    }
+
+                    if (newValue !== '') {
+                        const taskIndex = tasks.findIndex(t => t.id == taskId);
+                        if (taskIndex !== -1) {
+                            let finalValue = newValue;
+                            
+                            if (fieldName === 'doneDays') {
+                                const duration = getDaysBetween(tasks[taskIndex].startDate, tasks[taskIndex].endDate);
+                                finalValue = Math.min(Number(finalValue), duration);
+                                finalValue = Math.max(0, finalValue);
+                            }
+                            
+                            if (fieldName === 'startDate' || fieldName === 'endDate') {
+                                finalValue = toISODateString(finalValue);
+                            }
+                            
+                            tasks[taskIndex][fieldName] = finalValue;
+                            saveTasksToLocalStorage();
+                        }
+                        
+                        renderTasks();
+                    } else {
+                        this.textContent = currentValue;
+                    }
+                };
+
+                input.addEventListener('blur', saveEdit);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveEdit();
+                    }
+                });
+            };
+
+            return cell;
+        }
+
+        // 删除任务
+        function deleteTask(taskId) {
+            if (confirm('确定删除该任务吗？')) {
+                tasks = tasks.filter(t => t.id != taskId);
+                saveTasksToLocalStorage();
+                renderTasks();
+            }
+        }
+
+        // 保存到本地存储
+        function saveTasksToLocalStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        }
+
+        // 渲染所有任务行
+        function renderTasks() {
+            const tbody = document.getElementById('taskBody');
+            tbody.innerHTML = '';
+            
+            const start = formatDate(document.getElementById('startDate').value);
+            const end = formatDate(document.getElementById('endDate').value);
+            const totalDays = getTotalDaysInRange(start, end);
+            const isAutoCalc = document.getElementById('autoCalcSwitch').checked;
+            
+            tasks.forEach(task => {
+                const tr = document.createElement('tr');
+                
+                // 序号 + 删除按钮
+                const indexCell = document.createElement('td');
+                indexCell.className = 'index-cell';
+                indexCell.innerHTML = `
+                    <span style="font-weight:500;">${task.id}</span>
+                    <button class="delete-btn" data-id="${task.id}" title="删除任务">✖</button>
+                `;
+                tr.appendChild(indexCell);
+                
+                // 可编辑列
+                tr.appendChild(createEditableCell(task.name, 'name', task.id));
+                tr.appendChild(createEditableCell(task.manager, 'manager', task.id));
+                tr.appendChild(createEditableCell(task.startDate, 'startDate', task.id));
+                tr.appendChild(createEditableCell(task.endDate, 'endDate', task.id));
+                
+                // 持续天数（自动计算）
+                const duration = getDaysBetween(task.startDate, task.endDate);
+                const durationCell = document.createElement('td');
+                durationCell.textContent = duration;
+                durationCell.style.fontWeight = '500';
+                tr.appendChild(durationCell);
+                
+                // 已完成天数
+                const autoCalc = calculateAutoDoneDays(task);
+                const finalDoneDays = isAutoCalc ? autoCalc.autoDoneDays : task.doneDays;
+                tr.appendChild(createEditableCell(finalDoneDays, 'doneDays', task.id));
+                
+                // 完成率
+                const progress = duration > 0 ? Math.round((finalDoneDays / duration) * 100) : 0;
+                const progressCell = document.createElement('td');
+                progressCell.textContent = progress + '%';
+                progressCell.style.fontWeight = '500';
+                if (autoCalc.isCompleted) {
+                    progressCell.classList.add('completed');
+                } else if (autoCalc.isOverdue) {
+                    progressCell.classList.add('overdue');
+                }
+                tr.appendChild(progressCell);
+                
+                // 甘特图列
+                const ganttCell = document.createElement('td');
+                ganttCell.colSpan = totalDays;
+                ganttCell.style.padding = '0';
+                ganttCell.innerHTML = `<div class="gantt-row">${renderGanttBar(task, start)}</div>`;
+                tr.appendChild(ganttCell);
+                
+                tbody.appendChild(tr);
+            });
+
+            // 绑定删除按钮事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    deleteTask(id);
+                });
+            });
+        }
+
+        // 添加新任务
+        function addNewTask() {
+            const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+            const today = toISODateString(new Date());
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            
+            tasks.push({
+                id: newId,
+                name: "新工作任务",
+                manager: "待分配",
+                startDate: today,
+                endDate: toISODateString(nextWeek),
+                doneDays: 0
+            });
+            
+            saveTasksToLocalStorage();
+            renderTasks();
+        }
+
+        // 清空所有数据
+        function clearAllData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                tasks = [];
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem('project_name');
+                localStorage.removeItem('project_manager');
+                localStorage.removeItem('project_days');
+                renderTasks();
+                initHeaderInfo();
+            }
+        }
+
+        // 手动保存
+        function manualSaveData() {
+            saveTasksToLocalStorage();
+            alert('✅ 数据已保存到浏览器');
+        }
+
+        // 导出JSON
+        function exportData() {
+            const exportData = {
+                projectName: document.getElementById('projectName').value,
+                manager: document.getElementById('manager').value,
+                totalDays: document.getElementById('totalDays').value,
+                tasks: tasks,
+                exportTime: new Date().toLocaleString()
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `项目进度_${toISODateString(new Date())}.json`;
+            a.click();
+        }
+
+        // 导入JSON
+        function importData() {
+            document.getElementById('fileInput').click();
+        }
+
+        // 处理文件导入
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (importedData.tasks && Array.isArray(importedData.tasks)) {
+                        tasks = importedData.tasks;
+                        if (importedData.projectName) document.getElementById('projectName').value = importedData.projectName;
+                        if (importedData.manager) document.getElementById('manager').value = importedData.manager;
+                        if (importedData.totalDays) document.getElementById('totalDays').value = importedData.totalDays;
+                        
+                        saveTasksToLocalStorage();
+                        localStorage.setItem('project_name', document.getElementById('projectName').value);
+                        localStorage.setItem('project_manager', document.getElementById('manager').value);
+                        localStorage.setItem('project_days', document.getElementById('totalDays').value);
+                        renderTasks();
+                        alert('✅ 数据导入成功');
+                    } else {
+                        alert('❌ 数据格式错误');
+                    }
+                } catch (err) {
+                    alert('❌ 导入失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            this.value = '';
+        });
+
+        // 导出Excel (CSV) - 修复版本
+        function exportExcel() {
+            const isAutoCalc = document.getElementById('autoCalcSwitch').checked;
+            const header = ['序号', '项目事项', '负责人', '开始日期', '结束日期', '持续天数', '已完成天数', '完成率'];
+            
+            const rows = tasks.map(task => {
+                const duration = getDaysBetween(task.startDate, task.endDate);
+                // 使用与实际显示相同的已完成天数计算方法
+                const actualDoneDays = getActualDoneDays(task);
+                const progress = duration > 0 ? Math.round((actualDoneDays / duration) * 100) + '%' : '0%';
+                return [task.id, task.name, task.manager, task.startDate, task.endDate, duration, actualDoneDays, progress];
+            });
+            
+            const csvContent = [header.join(','), ...rows.map(row => row.join(','))].join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `项目进度表_${toISODateString(new Date())}.csv`;
+            a.click();
+        }
+
+        // 初始化页面
+        window.onload = function() {
+            initHeaderInfo();
+            renderDateHeader();
+            renderTasks();
+
+            // 事件绑定
+            document.getElementById('addTask').addEventListener('click', addNewTask);
+            document.getElementById('clearData').addEventListener('click', clearAllData);
+            document.getElementById('saveData').addEventListener('click', manualSaveData);
+            document.getElementById('exportExcel').addEventListener('click', exportExcel);
+            document.getElementById('exportData').addEventListener('click', exportData);
+            document.getElementById('importData').addEventListener('click', importData);
+
+            // 日期范围变化时更新
+            document.getElementById('startDate').addEventListener('change', () => {
+                renderDateHeader();
+                renderTasks();
+            });
+            
+            document.getElementById('endDate').addEventListener('change', () => {
+                renderDateHeader();
+                renderTasks();
+            });
+            
+            document.getElementById('autoCalcSwitch').addEventListener('change', renderTasks);
+
+            // 每分钟自动刷新（保持今日标记更新）
+            setInterval(() => {
+                if (document.getElementById('autoCalcSwitch').checked) {
+                    renderTasks();
+                }
+                renderDateHeader(); // 更新今日标记
+            }, 60000);
+        };
+    </script>
+</body>
+</html>
