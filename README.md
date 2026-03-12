@@ -1,5 +1,6 @@
 # gantt
 A Gantt chart that can be deployed locally and has sharing functionality  
+可本地部署的任务甘特图，可以手动分享最新进度  
 copy the "gantt.html" file to your computer, click to open.  
 click "清空所有数据" for your first use.  
 add your project message in line one.  
